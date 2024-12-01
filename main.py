@@ -155,8 +155,6 @@ def resubstitution(model, X, y):
     accuracy = accuracy_score(y, y_pred)
     return accuracy
 
-
-
 # Leave-One-Out Cross-Validation (LOO-CV)
 def loo_cv(model, X, y):
     loo = LeaveOneOut()
@@ -176,34 +174,6 @@ def bolstered_resubstitution(model, X, y, holdout_size=0.1):
    print("")
 
 
-# Evaluate all classifiers with each of the cross-validation methods
-results = {}
-
-for clf_name, clf in classifiers.items():
-
-    resub_accuracy = resubstitution(clf, X, y)
-    
-    # loo_accuracy = loo_cv(clf, X, y)
-    
-    # five_fold_accuracy = five_fold_cv(clf, X, y)
-    
-    # bootstrap_accuracy = bootstrap_632(clf, X, y)
-    
-    # bolstered_accuracy = bolstered_resubstitution(clf, X, y)
-
-    results[clf_name] = {
-        "Resubstitution": resub_accuracy,
-        # "LOO-CV": loo_accuracy,
-        # "5-Fold CV": five_fold_accuracy,
-        # "Bootstrap 632": bootstrap_accuracy,
-        # "Bolstered Resubstitution": bolstered_accuracy
-    }
-
-for clf_name, metrics in results.items():
-    print(f"\n{clf_name} Results:")
-    for method, accuracy in metrics.items():
-        print(f"{method}: {accuracy:.4f}")
-
 ##################################################
 # Performance Metrics and Error Analysis 
 ##################################################
@@ -211,6 +181,81 @@ for clf_name, metrics in results.items():
 # Variance: Variability of predictions across subsets.
 # True Classification Error: Direct error from test sets.
 
+def calculate_bias_variance(y_true, y_pred):
+    bias_squared = np.mean(y_pred - y_true) ** 2
+    variance = np.var(y_pred)
+    return bias_squared, variance
+
+
+
+# Evaluate all classifiers with each of the cross-validation methods
+results = {}
+
+for clf_name, clf in classifiers.items():
+    resub_accuracy = resubstitution(clf, X, y)
+    y_pred_resub = clf.predict(X)
+    resub_bias, resub_variance = calculate_bias_variance(y, y_pred_resub)
+
+    # loo_accuracy = loo_cv(clf, X, y)
+    # y_pred_loo = clf.predict(X)  
+    # loo_bias, loo_variance = calculate_bias_variance(y, y_pred_loo)
+
+    # five_fold_accuracy = five_fold_cv(clf, X, y)
+    # y_pred_five_fold = clf.predict(X)
+    # five_fold_bias, five_fold_variance = calculate_bias_variance(y, y_pred_five_fold)
+
+    # bootstrap_accuracy = bootstrap_632(clf, X, y)
+    # y_pred_bootstrap = clf.predict(X)
+    # bootstrap_bias, bootstrap_variance = calculate_bias_variance(y, y_pred_bootstrap)
+
+    # bolstered_accuracy = bolstered_resubstitution(clf, X, y)
+    # y_pred_bolstered = clf.predict(X)
+    # bolstered_bias, bolstered_variance = calculate_bias_variance(y, y_pred_bolstered)
+
+    results[clf_name] = {
+        "Resubstitution": {
+            "accuracy": resub_accuracy,
+            "error": 1 - resub_accuracy,
+            "bias": resub_bias,
+            "variance": resub_variance
+        },
+        # "LOO-CV": {
+        #     "accuracy": loo_accuracy,
+        #     "error": 1 - loo_accuracy,
+        #     "bias": loo_bias,
+        #     "variance": loo_variance
+        # },
+        # "5-Fold CV": {
+        #     "accuracy": five_fold_accuracy,
+        #     "error": 1 - five_fold_accuracy,
+        #     "bias": five_fold_bias,
+        #     "variance": five_fold_variance
+        # },
+        # "Bootstrap 632": {
+        #     "accuracy": bootstrap_accuracy,
+        #     "error": 1 - bootstrap_accuracy,
+        #     "bias": bootstrap_bias,
+        #     "variance": bootstrap_variance
+        # },
+        # "Bolstered Resubstitution": {
+        #     "accuracy": bolstered_accuracy,
+        #     "error": 1 - bolstered_accuracy,
+        #     "bias": bolstered_bias,
+        #     "variance": bolstered_variance
+        # }
+    }
+
+# Print results
+for clf_name, metrics in results.items():
+    print(f"\n{clf_name} Results:")
+    for method, stats in metrics.items():
+        print(f"{method}:")
+        print(f"  Accuracy: {stats['accuracy']:.4f}")
+        print(f"  Error: {stats['error']:.4f}")
+        print(f"  Bias: {stats['bias']:.4f}")
+        print(f"  Variance: {stats['variance']:.4f}")
+
 ##################################################
 # Visualization (Plotting)
 ##################################################
+# Includes deviation distributions by beta fitting
