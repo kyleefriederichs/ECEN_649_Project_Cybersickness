@@ -111,28 +111,40 @@ training_labels = []
 test_labels = []
 
 # Create all of the training and test sets over N sims
-for i in range(N):
-    # Randomly shuffle the indices for the dataset
-    indices = np.random.permutation(len(X))
+# for i in range(N):
+#     # Randomly shuffle the indices for the dataset
+#     indices = np.random.permutation(len(X))
     
-    # Select a random subset size (n <= n_max)
-    n = np.random.randint(1, n_max + 1)
+#     # Select a random subset size (n <= n_max)
+#     # n = np.random.randint(1, n_max + 1)
+#     n=20
     
-    # Split indices into training and test subsets
-    training_indices = indices[:n]
-    test_indices = indices[n:]
+#     # Split indices into training and test subsets
+#     training_indices = indices[:n]
+#     test_indices = indices[n:]
     
-    # Create training and test subsets
-    X_train = X[training_indices]
-    X_test = X[test_indices]
-    y_train = y[training_indices]
-    y_test = y[test_indices]
+#     # Create training and test subsets
+#     X_train = X[training_indices]
+#     X_test = X[test_indices]
+#     y_train = y[training_indices]
+#     y_test = y[test_indices]
     
-    training_sets.append(X_train)
-    test_sets.append(X_test)
-    training_labels.append(y_train)
-    test_labels.append(y_test)
+#     training_sets.append(X_train)
+#     test_sets.append(X_test)
+#     training_labels.append(y_train)
+#     test_labels.append(y_test)
 
+#  creating the training and test sets differently to ensure the classes and samples are balanced for later
+for i in range(N):
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.8, stratify=y  
+    )
+    n = 20 # always choose 20 now because it was causing issues if it selected too few samples for training
+    
+    training_sets.append(X_train[:n]) 
+    test_sets.append(X_test)
+    training_labels.append(y_train[:n])
+    test_labels.append(y_test)
 
 
 ##################################################
@@ -169,10 +181,8 @@ def bootstrap_632(model, X, y, n_iterations=1000):
     print("")
 
 
-# Bolstered Resubstitution
 def bolstered_resubstitution(model, X, y, holdout_size=0.1):
-   print("")
-
+    print("")
 
 ##################################################
 # Performance Metrics and Error Analysis 
@@ -187,63 +197,132 @@ def calculate_bias_variance(y_true, y_pred):
     return bias_squared, variance
 
 
-
 # Evaluate all classifiers with each of the cross-validation methods
 results = {}
 
 for clf_name, clf in classifiers.items():
-    resub_accuracy = resubstitution(clf, X, y)
-    y_pred_resub = clf.predict(X)
-    resub_bias, resub_variance = calculate_bias_variance(y, y_pred_resub)
+    resub_accuracy_list = []
+    resub_bias_list = []
+    resub_variance_list = []
 
-    # loo_accuracy = loo_cv(clf, X, y)
-    # y_pred_loo = clf.predict(X)  
-    # loo_bias, loo_variance = calculate_bias_variance(y, y_pred_loo)
+    loo_accuracy_list = []
+    loo_bias_list = []
+    loo_variance_list = []
 
-    # five_fold_accuracy = five_fold_cv(clf, X, y)
-    # y_pred_five_fold = clf.predict(X)
-    # five_fold_bias, five_fold_variance = calculate_bias_variance(y, y_pred_five_fold)
+    five_fold_accuracy_list = []
+    five_fold_bias_list = []
+    five_fold_variance_list = []
 
-    # bootstrap_accuracy = bootstrap_632(clf, X, y)
-    # y_pred_bootstrap = clf.predict(X)
-    # bootstrap_bias, bootstrap_variance = calculate_bias_variance(y, y_pred_bootstrap)
+    bootstrap_accuracy_list = []
+    bootstrap_bias_list = []
+    bootstrap_variance_list = []
 
-    # bolstered_accuracy = bolstered_resubstitution(clf, X, y)
-    # y_pred_bolstered = clf.predict(X)
-    # bolstered_bias, bolstered_variance = calculate_bias_variance(y, y_pred_bolstered)
+    bolstered_accuracy_list = []
+    bolstered_bias_list = []
+    bolstered_variance_list = []
+
+    # Loop over N simulations to evaluate on each simulation
+    for i in range(N):
+        # Get the current simulation's training and test set
+        X_train = training_sets[i]
+        X_test = test_sets[i]
+        y_train = training_labels[i]
+        y_test = test_labels[i]
+
+        # Train the model on the training set
+        clf.fit(X_train, y_train)
+
+        # Make predictions on the test set
+        y_pred = clf.predict(X_test)
+
+        # Resubstitution 
+        resub_accuracy = resubstitution(clf, X_train, y_train)  # Resubstitution is evaluated on the training set
+        resub_bias, resub_variance = calculate_bias_variance(y_train, clf.predict(X_train)) 
+        resub_accuracy_list.append(resub_accuracy)
+        resub_bias_list.append(resub_bias)
+        resub_variance_list.append(resub_variance)
+
+        ## Leave-One-Out 
+        # loo_accuracy = loo_cv(clf, X_train, y_train) 
+        # loo_bias, loo_variance = calculate_bias_variance(y_test, y_pred)
+        # loo_accuracy_list.append(loo_accuracy)
+        # loo_bias_list.append(loo_bias)
+        # loo_variance_list.append(loo_variance)
+
+        ## 5-Fold 
+        # five_fold_accuracy = five_fold_cv(clf, X_train, y_train)  
+        # five_fold_bias, five_fold_variance = calculate_bias_variance(y_test, y_pred)
+        # five_fold_accuracy_list.append(five_fold_accuracy)
+        # five_fold_bias_list.append(five_fold_bias)
+        # five_fold_variance_list.append(five_fold_variance)
+
+        ## Bootstrap .632 
+        # bootstrap_accuracy = bootstrap_632(clf, X_train, y_train)  
+        # bootstrap_bias, bootstrap_variance = calculate_bias_variance(y_test, y_pred)
+        # bootstrap_accuracy_list.append(bootstrap_accuracy)
+        # bootstrap_bias_list.append(bootstrap_bias)
+        # bootstrap_variance_list.append(bootstrap_variance)
+
+        # # Bolstered Resubstitution 
+        # bolstered_accuracy = bolstered_resubstitution(clf, X_train, y_train)  
+        # bolstered_bias, bolstered_variance = calculate_bias_variance(y_test, y_pred)
+        # bolstered_accuracy_list.append(bolstered_accuracy)
+        # bolstered_bias_list.append(bolstered_bias)
+        # bolstered_variance_list.append(bolstered_variance)
+
+    avg_resub_accuracy = np.mean(resub_accuracy_list)
+    avg_resub_bias = np.mean(resub_bias_list)
+    avg_resub_variance = np.mean(resub_variance_list)
+
+    # avg_loo_accuracy = np.mean(loo_accuracy_list)
+    # avg_loo_bias = np.mean(loo_bias_list)
+    # avg_loo_variance = np.mean(loo_variance_list)
+
+    # avg_five_fold_accuracy = np.mean(five_fold_accuracy_list)
+    # avg_five_fold_bias = np.mean(five_fold_bias_list)
+    # avg_five_fold_variance = np.mean(five_fold_variance_list)
+
+    # avg_bootstrap_accuracy = np.mean(bootstrap_accuracy_list)
+    # avg_bootstrap_bias = np.mean(bootstrap_bias_list)
+    # avg_bootstrap_variance = np.mean(bootstrap_variance_list)
+
+    # avg_bolstered_accuracy = np.mean(bolstered_accuracy_list)
+    # avg_bolstered_bias = np.mean(bolstered_bias_list)
+    # avg_bolstered_variance = np.mean(bolstered_variance_list)
 
     results[clf_name] = {
         "Resubstitution": {
-            "accuracy": resub_accuracy,
-            "error": 1 - resub_accuracy,
-            "bias": resub_bias,
-            "variance": resub_variance
+            "accuracy": avg_resub_accuracy,
+            "error": 1 - avg_resub_accuracy,
+            "bias": avg_resub_bias,
+            "variance": avg_resub_variance
         },
         # "LOO-CV": {
-        #     "accuracy": loo_accuracy,
-        #     "error": 1 - loo_accuracy,
-        #     "bias": loo_bias,
-        #     "variance": loo_variance
+        #     "accuracy": avg_loo_accuracy,
+        #     "error": 1 - avg_loo_accuracy,
+        #     "bias": avg_loo_bias,
+        #     "variance": avg_loo_variance
         # },
         # "5-Fold CV": {
-        #     "accuracy": five_fold_accuracy,
-        #     "error": 1 - five_fold_accuracy,
-        #     "bias": five_fold_bias,
-        #     "variance": five_fold_variance
+        #     "accuracy": avg_five_fold_accuracy,
+        #     "error": 1 - avg_five_fold_accuracy,
+        #     "bias": avg_five_fold_bias,
+        #     "variance": avg_five_fold_variance
         # },
         # "Bootstrap 632": {
-        #     "accuracy": bootstrap_accuracy,
-        #     "error": 1 - bootstrap_accuracy,
-        #     "bias": bootstrap_bias,
-        #     "variance": bootstrap_variance
+        #     "accuracy": avg_bootstrap_accuracy,
+        #     "error": 1 - avg_bootstrap_accuracy,
+        #     "bias": avg_bootstrap_bias,
+        #     "variance": avg_bootstrap_variance
         # },
         # "Bolstered Resubstitution": {
-        #     "accuracy": bolstered_accuracy,
-        #     "error": 1 - bolstered_accuracy,
-        #     "bias": bolstered_bias,
-        #     "variance": bolstered_variance
+        #     "accuracy": avg_bolstered_accuracy,
+        #     "error": 1 - avg_bolstered_accuracy,
+        #     "bias": avg_bolstered_bias,
+        #     "variance": avg_bolstered_variance
         # }
     }
+
 
 # Print results
 for clf_name, metrics in results.items():
@@ -254,6 +333,7 @@ for clf_name, metrics in results.items():
         print(f"  Error: {stats['error']:.4f}")
         print(f"  Bias: {stats['bias']:.4f}")
         print(f"  Variance: {stats['variance']:.4f}")
+
 
 ##################################################
 # Visualization (Plotting)
