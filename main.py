@@ -9,6 +9,9 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.utils import resample
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+
 
 ##################################################
 # Load the dataset
