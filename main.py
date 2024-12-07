@@ -142,7 +142,8 @@ for i in range(N):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.8, stratify=y  
     )
-    n = 20 # always choose 20 now because it was causing issues if it selected too few samples for training
+    # n = 20 # always choose at least 20 now because it was causing issues if it selected too few samples for training
+    n = np.random.randint(20, 50)
     
     training_sets.append(X_train[:n]) 
     test_sets.append(X_test)
@@ -180,11 +181,11 @@ def five_fold_cv(model, X, y):
     print("")
 
 # .632 Bootstrap
-def bootstrap_632(model, X, y, n_iterations=1000):
+def bootstrap_632(model, X, y, n_iterations=200): # professor uses 200 for Bootstrap
     print("")
 
 
-def bolstered_resubstitution(model, X, y, holdout_size=0.1):
+def bolstered_resubstitution(model, X, y):
     print("")
 
 ##################################################
