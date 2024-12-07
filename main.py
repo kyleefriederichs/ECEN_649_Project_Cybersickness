@@ -168,7 +168,7 @@ def resubstitution(model, X, y):
     model.fit(X, y)
     y_pred = model.predict(X)
     accuracy = accuracy_score(y, y_pred)
-    return accuracy
+    return (1-accuracy)
 
 # Leave-One-Out Cross-Validation (LOO-CV)
 def loo_cv(model, X, y):
@@ -180,8 +180,51 @@ def five_fold_cv(model, X, y):
     print("")
 
 # .632 Bootstrap
-def bootstrap_632(model, X, y, n_iterations=200): # professor uses 200 for Bootstrap
-    print("")
+def bootstrap_632(model, X, y, n_iterations=2):
+    err = 0.0
+    n_samples = len(X)
+    classes, class_counts = np.unique(y, return_counts=True)
+    
+    if len(classes) < 2:
+        raise ValueError("Dataset must have at least two classes.")
+
+    for _ in range(n_iterations):
+        while True:
+            # Perform stratified bootstrap sampling
+            X_boot = []
+            y_boot = []
+            
+            for cls in classes:
+                cls_indices = np.where(y == cls)[0]
+                if len(cls_indices) < 2:  # Ensure at least 2 samples per class
+                    raise ValueError(f"Class {cls} has fewer than 2 samples.")
+                sampled_indices = np.random.choice(cls_indices, size=len(cls_indices), replace=True)
+                X_boot.append(X[sampled_indices])
+                y_boot.append(y[sampled_indices])
+            
+            X_boot = np.vstack(X_boot)
+            y_boot = np.hstack(y_boot)
+            
+            # Ensure at least two unique classes are present
+            if len(np.unique(y_boot)) == len(classes):
+                break
+        
+        # Fit the model on the bootstrap sample
+        model.fit(X_boot, y_boot)
+
+        # Predict on out-of-bag samples
+        oob_indices = np.setdiff1d(np.arange(n_samples), sampled_indices)
+        if len(oob_indices) > 0:  # Ensure OOB samples are available
+            y_pred_oob = model.predict(X[oob_indices])
+
+            # Calculate the OOB error
+            err += 1 - accuracy_score(y[oob_indices], y_pred_oob)
+
+    # Calculate the .632 Bootstrap error estimation
+    err /= n_iterations
+    err_632 = 0.632 * err + 0.368 * (1 - accuracy_score(y, model.predict(X)))
+
+    return err_632
 
 
 def bolstered_resubstitution(model, X, y):
@@ -216,23 +259,23 @@ def calculate_bias_variance(y_true, y_pred):
 results = {}
 
 for clf_name, clf in classifiers.items():
-    resub_accuracy_list = []
+    resub_err_list = []
     resub_bias_list = []
     resub_variance_list = []
 
-    loo_accuracy_list = []
+    loo_err_list = []
     loo_bias_list = []
     loo_variance_list = []
 
-    five_fold_accuracy_list = []
+    five_fold_err_list = []
     five_fold_bias_list = []
     five_fold_variance_list = []
 
-    bootstrap_accuracy_list = []
+    bootstrap_err_list = []
     bootstrap_bias_list = []
     bootstrap_variance_list = []
 
-    bolstered_accuracy_list = []
+    bolstered_err_list = []
     bolstered_bias_list = []
     bolstered_variance_list = []
 
@@ -251,88 +294,88 @@ for clf_name, clf in classifiers.items():
         y_pred = clf.predict(X_test)
 
         # Resubstitution 
-        resub_accuracy = resubstitution(clf, X_train, y_train)  # Resubstitution is evaluated on the training set
+        resub_err = resubstitution(clf, X_train, y_train)  # Resubstitution is evaluated on the training set
         resub_bias, resub_variance = calculate_bias_variance(y_train, clf.predict(X_train)) 
-        resub_accuracy_list.append(resub_accuracy)
+        resub_err_list.append(resub_err)
         resub_bias_list.append(resub_bias)
         resub_variance_list.append(resub_variance)
 
         ## Leave-One-Out 
-        # loo_accuracy = loo_cv(clf, X_train, y_train) 
+        # loo_err = loo_cv(clf, X_train, y_train) 
         # loo_bias, loo_variance = calculate_bias_variance(y_test, y_pred)
-        # loo_accuracy_list.append(loo_accuracy)
+        # loo_err_list.append(loo_err)
         # loo_bias_list.append(loo_bias)
         # loo_variance_list.append(loo_variance)
 
         ## 5-Fold 
-        # five_fold_accuracy = five_fold_cv(clf, X_train, y_train)  
+        # five_fold_err = five_fold_cv(clf, X_train, y_train)  
         # five_fold_bias, five_fold_variance = calculate_bias_variance(y_test, y_pred)
-        # five_fold_accuracy_list.append(five_fold_accuracy)
+        # five_fold_err_list.append(five_fold_err)
         # five_fold_bias_list.append(five_fold_bias)
         # five_fold_variance_list.append(five_fold_variance)
 
-        ## .632 Bootstrap 
-        # bootstrap_accuracy = bootstrap_632(clf, X_train, y_train)  
-        # bootstrap_bias, bootstrap_variance = calculate_bias_variance(y_test, y_pred)
-        # bootstrap_accuracy_list.append(bootstrap_accuracy)
-        # bootstrap_bias_list.append(bootstrap_bias)
-        # bootstrap_variance_list.append(bootstrap_variance)
+        # .632 Bootstrap 
+        bootstrap_err = bootstrap_632(clf, X_train, y_train)  
+        bootstrap_bias, bootstrap_variance = calculate_bias_variance(y_test, y_pred)
+        bootstrap_err_list.append(bootstrap_err)
+        bootstrap_bias_list.append(bootstrap_bias)
+        bootstrap_variance_list.append(bootstrap_variance)
 
         # Bolstered Resubstitution 
-        bolstered_accuracy = bolstered_resubstitution(clf, X_train, y_train)  
+        bolstered_err = bolstered_resubstitution(clf, X_train, y_train)  
         bolstered_bias, bolstered_variance = calculate_bias_variance(y_test, y_pred)
-        bolstered_accuracy_list.append(bolstered_accuracy)
+        bolstered_err_list.append(bolstered_err)
         bolstered_bias_list.append(bolstered_bias)
         bolstered_variance_list.append(bolstered_variance)
 
-    avg_resub_accuracy = np.mean(resub_accuracy_list)
+    avg_resub_err = np.mean(resub_err_list)
     avg_resub_bias = np.mean(resub_bias_list)
     avg_resub_variance = np.mean(resub_variance_list)
 
-    # avg_loo_accuracy = np.mean(loo_accuracy_list)
+    # avg_loo_err = np.mean(loo_err_list)
     # avg_loo_bias = np.mean(loo_bias_list)
     # avg_loo_variance = np.mean(loo_variance_list)
 
-    # avg_five_fold_accuracy = np.mean(five_fold_accuracy_list)
+    # avg_five_fold_err = np.mean(five_fold_err_list)
     # avg_five_fold_bias = np.mean(five_fold_bias_list)
     # avg_five_fold_variance = np.mean(five_fold_variance_list)
 
-    # avg_bootstrap_accuracy = np.mean(bootstrap_accuracy_list)
-    # avg_bootstrap_bias = np.mean(bootstrap_bias_list)
-    # avg_bootstrap_variance = np.mean(bootstrap_variance_list)
+    avg_bootstrap_err = np.mean(bootstrap_err_list)
+    avg_bootstrap_bias = np.mean(bootstrap_bias_list)
+    avg_bootstrap_variance = np.mean(bootstrap_variance_list)
 
-    avg_bolstered_accuracy = np.mean(bolstered_accuracy_list)
+    avg_bolstered_err = np.mean(bolstered_err_list)
     avg_bolstered_bias = np.mean(bolstered_bias_list)
     avg_bolstered_variance = np.mean(bolstered_variance_list)
 
     results[clf_name] = {
         "Resubstitution": {
-            "accuracy": avg_resub_accuracy,
-            "error": 1 - avg_resub_accuracy,
+            "accuracy": 1 - avg_resub_err,
+            "error": avg_resub_err,
             "bias": avg_resub_bias,
             "variance": avg_resub_variance
         },
         # "LOO-CV": {
-        #     "accuracy": avg_loo_accuracy,
-        #     "error": 1 - avg_loo_accuracy,
+        #     "accuracy": 1 - avg_loo_err,
+        #     "error": avg_loo_err,
         #     "bias": avg_loo_bias,
         #     "variance": avg_loo_variance
         # },
         # "5-Fold CV": {
-        #     "accuracy": avg_five_fold_accuracy,
-        #     "error": 1 - avg_five_fold_accuracy,
+        #     "accuracy": 1 - avg_five_fold_err,
+        #     "error": avg_five_fold_err,
         #     "bias": avg_five_fold_bias,
         #     "variance": avg_five_fold_variance
         # },
-        # "Bootstrap 632": {
-        #     "accuracy": avg_bootstrap_accuracy,
-        #     "error": 1 - avg_bootstrap_accuracy,
-        #     "bias": avg_bootstrap_bias,
-        #     "variance": avg_bootstrap_variance
-        # },
+        "Bootstrap 632": {
+            "accuracy": 1 - avg_bootstrap_err,
+            "error": avg_bootstrap_err,
+            "bias": avg_bootstrap_bias,
+            "variance": avg_bootstrap_variance
+        },
         "Bolstered Resubstitution": {
-            "accuracy": avg_bolstered_accuracy,
-            "error": 1 - avg_bolstered_accuracy,
+            "accuracy": 1 - avg_bolstered_err,
+            "error": avg_bolstered_err,
             "bias": avg_bolstered_bias,
             "variance": avg_bolstered_variance
         }
