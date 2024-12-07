@@ -172,8 +172,10 @@ def resubstitution(model, X, y):
 
 # Leave-One-Out Cross-Validation (LOO-CV)
 def loo_cv(model, X, y):
-    loo = LeaveOneOut()
-    print("")
+    loocv = LeaveOneOut()
+    scores = cross_val_score(model, X, y, cv=loocv)
+    return 1 - scores.mean()
+
 
 # 5-Fold Cross-Validation
 def five_fold_cv(model, X, y):
@@ -312,12 +314,12 @@ for clf_name, clf in classifiers.items():
         resub_bias_list.append(resub_bias)
         resub_variance_list.append(resub_variance)
 
-        ## Leave-One-Out 
-        # loo_err = loo_cv(clf, X_train, y_train) 
-        # loo_bias, loo_variance = calculate_bias_variance(y_test, y_pred)
-        # loo_err_list.append(loo_err)
-        # loo_bias_list.append(loo_bias)
-        # loo_variance_list.append(loo_variance)
+        # Leave-One-Out 
+        loo_err = loo_cv(clf, X_train, y_train) 
+        loo_bias, loo_variance = calculate_bias_variance(y_test, y_pred)
+        loo_err_list.append(loo_err)
+        loo_bias_list.append(loo_bias)
+        loo_variance_list.append(loo_variance)
 
         # 5-Fold 
         five_fold_err = five_fold_cv(clf, X_train, y_train)  
@@ -344,9 +346,9 @@ for clf_name, clf in classifiers.items():
     avg_resub_bias = np.mean(resub_bias_list)
     avg_resub_variance = np.mean(resub_variance_list)
 
-    # avg_loo_err = np.mean(loo_err_list)
-    # avg_loo_bias = np.mean(loo_bias_list)
-    # avg_loo_variance = np.mean(loo_variance_list)
+    avg_loo_err = np.mean(loo_err_list)
+    avg_loo_bias = np.mean(loo_bias_list)
+    avg_loo_variance = np.mean(loo_variance_list)
 
     avg_five_fold_err = np.mean(five_fold_err_list)
     avg_five_fold_bias = np.mean(five_fold_bias_list)
@@ -367,12 +369,12 @@ for clf_name, clf in classifiers.items():
             "bias": avg_resub_bias,
             "variance": avg_resub_variance
         },
-        # "LOO-CV": {
-        #     "accuracy": 1 - avg_loo_err,
-        #     "error": avg_loo_err,
-        #     "bias": avg_loo_bias,
-        #     "variance": avg_loo_variance
-        # },
+        "LOO-CV": {
+            "accuracy": 1 - avg_loo_err,
+            "error": avg_loo_err,
+            "bias": avg_loo_bias,
+            "variance": avg_loo_variance
+        },
         "5-Fold CV": {
             "accuracy": 1 - avg_five_fold_err,
             "error": avg_five_fold_err,
