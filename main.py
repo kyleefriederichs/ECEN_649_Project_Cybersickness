@@ -142,7 +142,6 @@ for i in range(N):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.8, stratify=y  
     )
-    # n = 20 # always choose at least 20 now because it was causing issues if it selected too few samples for training
     n = np.random.randint(20, 50)
     
     training_sets.append(X_train[:n]) 
@@ -186,7 +185,19 @@ def bootstrap_632(model, X, y, n_iterations=200): # professor uses 200 for Boots
 
 
 def bolstered_resubstitution(model, X, y):
-    print("")
+    model.fit(X, y)
+
+    y_pred = model.predict(X)
+
+    error_count = 0
+    for i in range(len(X)):
+        if y_pred[i] != y[i]:
+            error_count += 1
+
+    # Bolstering: Add a small positive value to the error count
+    error_count += 0.5
+
+    return error_count / len(X)
 
 ##################################################
 # Performance Metrics and Error Analysis 
@@ -260,19 +271,19 @@ for clf_name, clf in classifiers.items():
         # five_fold_bias_list.append(five_fold_bias)
         # five_fold_variance_list.append(five_fold_variance)
 
-        ## Bootstrap .632 
+        ## .632 Bootstrap 
         # bootstrap_accuracy = bootstrap_632(clf, X_train, y_train)  
         # bootstrap_bias, bootstrap_variance = calculate_bias_variance(y_test, y_pred)
         # bootstrap_accuracy_list.append(bootstrap_accuracy)
         # bootstrap_bias_list.append(bootstrap_bias)
         # bootstrap_variance_list.append(bootstrap_variance)
 
-        # # Bolstered Resubstitution 
-        # bolstered_accuracy = bolstered_resubstitution(clf, X_train, y_train)  
-        # bolstered_bias, bolstered_variance = calculate_bias_variance(y_test, y_pred)
-        # bolstered_accuracy_list.append(bolstered_accuracy)
-        # bolstered_bias_list.append(bolstered_bias)
-        # bolstered_variance_list.append(bolstered_variance)
+        # Bolstered Resubstitution 
+        bolstered_accuracy = bolstered_resubstitution(clf, X_train, y_train)  
+        bolstered_bias, bolstered_variance = calculate_bias_variance(y_test, y_pred)
+        bolstered_accuracy_list.append(bolstered_accuracy)
+        bolstered_bias_list.append(bolstered_bias)
+        bolstered_variance_list.append(bolstered_variance)
 
     avg_resub_accuracy = np.mean(resub_accuracy_list)
     avg_resub_bias = np.mean(resub_bias_list)
@@ -290,9 +301,9 @@ for clf_name, clf in classifiers.items():
     # avg_bootstrap_bias = np.mean(bootstrap_bias_list)
     # avg_bootstrap_variance = np.mean(bootstrap_variance_list)
 
-    # avg_bolstered_accuracy = np.mean(bolstered_accuracy_list)
-    # avg_bolstered_bias = np.mean(bolstered_bias_list)
-    # avg_bolstered_variance = np.mean(bolstered_variance_list)
+    avg_bolstered_accuracy = np.mean(bolstered_accuracy_list)
+    avg_bolstered_bias = np.mean(bolstered_bias_list)
+    avg_bolstered_variance = np.mean(bolstered_variance_list)
 
     results[clf_name] = {
         "Resubstitution": {
@@ -319,12 +330,12 @@ for clf_name, clf in classifiers.items():
         #     "bias": avg_bootstrap_bias,
         #     "variance": avg_bootstrap_variance
         # },
-        # "Bolstered Resubstitution": {
-        #     "accuracy": avg_bolstered_accuracy,
-        #     "error": 1 - avg_bolstered_accuracy,
-        #     "bias": avg_bolstered_bias,
-        #     "variance": avg_bolstered_variance
-        # }
+        "Bolstered Resubstitution": {
+            "accuracy": avg_bolstered_accuracy,
+            "error": 1 - avg_bolstered_accuracy,
+            "bias": avg_bolstered_bias,
+            "variance": avg_bolstered_variance
+        }
     }
 
 
