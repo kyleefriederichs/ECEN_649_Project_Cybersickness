@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, make_scorer
 from sklearn.model_selection import train_test_split, LeaveOneOut, cross_val_score, KFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -177,10 +177,22 @@ def loo_cv(model, X, y):
 
 # 5-Fold Cross-Validation
 def five_fold_cv(model, X, y):
-    print("")
+    # Create a KFold object with 5 folds
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+    # Perform cross-validation and calculate accuracy scores
+    scores = cross_val_score(model, X, y, cv=kf, scoring='accuracy')
+
+    # Calculate the average accuracy and error rate
+    mean_accuracy = scores.mean()
+    return (1 - mean_accuracy)
+
+
+
+
 
 # .632 Bootstrap
-def bootstrap_632(model, X, y, n_iterations=2):
+def bootstrap_632(model, X, y, n_iterations=2): # TODO: change to 200 !!!!!!!!!!!! (takes a long time to run, so do this at the end!!!)
     err = 0.0
     n_samples = len(X)
     classes, class_counts = np.unique(y, return_counts=True)
@@ -307,12 +319,12 @@ for clf_name, clf in classifiers.items():
         # loo_bias_list.append(loo_bias)
         # loo_variance_list.append(loo_variance)
 
-        ## 5-Fold 
-        # five_fold_err = five_fold_cv(clf, X_train, y_train)  
-        # five_fold_bias, five_fold_variance = calculate_bias_variance(y_test, y_pred)
-        # five_fold_err_list.append(five_fold_err)
-        # five_fold_bias_list.append(five_fold_bias)
-        # five_fold_variance_list.append(five_fold_variance)
+        # 5-Fold 
+        five_fold_err = five_fold_cv(clf, X_train, y_train)  
+        five_fold_bias, five_fold_variance = calculate_bias_variance(y_test, y_pred)
+        five_fold_err_list.append(five_fold_err)
+        five_fold_bias_list.append(five_fold_bias)
+        five_fold_variance_list.append(five_fold_variance)
 
         # .632 Bootstrap 
         bootstrap_err = bootstrap_632(clf, X_train, y_train)  
@@ -336,9 +348,9 @@ for clf_name, clf in classifiers.items():
     # avg_loo_bias = np.mean(loo_bias_list)
     # avg_loo_variance = np.mean(loo_variance_list)
 
-    # avg_five_fold_err = np.mean(five_fold_err_list)
-    # avg_five_fold_bias = np.mean(five_fold_bias_list)
-    # avg_five_fold_variance = np.mean(five_fold_variance_list)
+    avg_five_fold_err = np.mean(five_fold_err_list)
+    avg_five_fold_bias = np.mean(five_fold_bias_list)
+    avg_five_fold_variance = np.mean(five_fold_variance_list)
 
     avg_bootstrap_err = np.mean(bootstrap_err_list)
     avg_bootstrap_bias = np.mean(bootstrap_bias_list)
@@ -361,12 +373,12 @@ for clf_name, clf in classifiers.items():
         #     "bias": avg_loo_bias,
         #     "variance": avg_loo_variance
         # },
-        # "5-Fold CV": {
-        #     "accuracy": 1 - avg_five_fold_err,
-        #     "error": avg_five_fold_err,
-        #     "bias": avg_five_fold_bias,
-        #     "variance": avg_five_fold_variance
-        # },
+        "5-Fold CV": {
+            "accuracy": 1 - avg_five_fold_err,
+            "error": avg_five_fold_err,
+            "bias": avg_five_fold_bias,
+            "variance": avg_five_fold_variance
+        },
         "Bootstrap 632": {
             "accuracy": 1 - avg_bootstrap_err,
             "error": avg_bootstrap_err,
