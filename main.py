@@ -11,8 +11,11 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticD
 from sklearn.utils import resample
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 import matplotlib.pyplot as plt
 from scipy.stats import beta
+import seaborn as sns
+
 
 
 
@@ -58,6 +61,8 @@ for key, values in data.items():
         "HR": np.mean(values.Empatica.HR.HR) if isinstance(values.Empatica.HR.HR, (list, pd.Series, np.ndarray)) else values.Empatica.HR.HR,
         "TEM": np.mean(values.Empatica.TEM.TEM) if isinstance(values.Empatica.TEM.TEM, (list, pd.Series, np.ndarray)) else values.Empatica.TEM.TEM
     })
+
+SSQ_data = np.array(SSQs)
 
 ##################################################
 # Preprocessing
@@ -197,7 +202,7 @@ def five_fold_cv(model, X, y):
 
 
 # .632 Bootstrap
-def bootstrap_632(model, X, y, n_iterations=2): # TODO: change to 200 !!!!!!!!!!!! (takes a long time to run, so do this at the end!!!)
+def bootstrap_632(model, X, y, n_iterations=200): # TODO: change to 200 !!!!!!!!!!!! (takes a long time to run, so do this at the end!!!)
     err = 0.0
     n_samples = len(X)
     classes, class_counts = np.unique(y, return_counts=True)
@@ -418,9 +423,3 @@ for clf_name, metrics in results.items():
 error_rates_df = pd.DataFrame(error_rates, index=classifiers.keys())
 print("\nError Rates Table:")
 print(error_rates_df)
-
-
-##################################################
-# Visualization (Plotting)
-##################################################
-# Includes deviation distributions by beta fitting
