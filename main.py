@@ -11,6 +11,9 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticD
 from sklearn.utils import resample
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+import matplotlib.pyplot as plt
+from scipy.stats import beta
+
 
 
 ##################################################
@@ -405,6 +408,16 @@ for clf_name, metrics in results.items():
         print(f"  Error: {stats['error']:.4f}")
         print(f"  Bias: {stats['bias']:.4f}")
         print(f"  Variance: {stats['variance']:.4f}")
+
+error_rates = {}
+
+for clf_name, metrics in results.items():
+    for method, stats in metrics.items():
+        error_rates.setdefault(method, []).append(stats["error"])
+
+error_rates_df = pd.DataFrame(error_rates, index=classifiers.keys())
+print("\nError Rates Table:")
+print(error_rates_df)
 
 
 ##################################################
